@@ -17,47 +17,9 @@ PBEE (**P**rotein **B**inding **E**nergy **E**stimator) is an easy-to-use pipeli
 ## Google Colab
 Before install and run it locally, you can try the online version of PBEE in [Google Colab Notebook](https://colab.research.google.com/drive/1lu1dC0yRltKK_Wp-gF26oHcZSCiHaI8b).
 
-## Download & Install
-#### Step 1 - Install Conda (if not already installed)
+## Download & Install for Milton
+#### The pbeeinstall.sh script is bundled with the Nanobody Pipeline repository.
 
-If Conda is not already installed on your system, follow the instructions below to download and install it:
-
-1. Visit the [Anaconda installation page](https://www.anaconda.com/download/success).
-2. Download the Anaconda installer for your operating system.
-3. Follow the installation instructions on the page to complete the setup.
-
-After installing Anaconda, you should be able to use `conda` commands in your terminal.
-
-#### Step 2 - Clone the repository
-
-```
-git clone https://github.com/chavesejf/PBEE.git
-```
-
-#### Step 3 - Create pbee_env in Conda
-```
-PBEE_PATH=<path_to_pbee_directory>
-cd $PBEE_PATH
-conda env create -f environment.yml
-conda activate pbee_env
-```
-
-#### Step 4 - Install PyRosetta in pbee_env
-```
-pip install pyrosetta-installer
-python -c 'import pyrosetta_installer; pyrosetta_installer.install_pyrosetta()'
-```
-
-#### Step 5 - Download/Update base models
-
-Download the latest version of the ML models (ex.: v1.0-<file_id>.zip) at the following link:
-https://drive.google.com/drive/folders/1tIIaVXekaGzlQ0Z-0NrxoZJbafohHWYg?usp=drive_link
-
-Once the ML models have been downloaded, run the commands below:
-```
-cd $PBEE_PATH
-mkdir $PBEE_PATH/trainedmodels
-unzip v1.1-<file_id>.zip -d $PBEE_PATH/trainedmodels
 ```
 ## Arguments description
 
