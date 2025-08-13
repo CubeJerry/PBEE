@@ -20,7 +20,7 @@ Before install and run it locally, you can try the online version of PBEE in [Go
 ## Download & Install for Milton
 #### The pbeeinstall.sh script is bundled with the Nanobody Pipeline repository.
 
-```
+
 ## Arguments description
 
 | Argument            | Mandatory | Description |
