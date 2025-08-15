@@ -284,15 +284,26 @@ def preventing_errors(pdbfile, basename, outdir):
     return pdb2, atoms
 
 def pdbcleaner(pdbfile, basename, outdir, submit_dir, partner1, partner2):
-    commands = [
-        f'python {PbeePATH}/modules/clean_pdb.py {pdbfile} {partner1}',
-        f'python {PbeePATH}/modules/clean_pdb.py {pdbfile} {partner2}',
-        f'mv {submit_dir}/{basename}_{partner1}.pdb {outdir}',
-        f'mv {submit_dir}/{basename}_{partner2}.pdb {outdir}',
-        f'mv {submit_dir}/{basename}_*.fasta {outdir}']
-    for command in commands:
-        subprocess.run(command, stdout=subprocess.PIPE, shell=True)
+    cmds = [
+        (f'python {PbeePATH}/modules/clean_pdb.py {pdbfile} {partner1}', f'{submit_dir}/{basename}_{partner1}.pdb'),
+        (f'python {PbeePATH}/modules/clean_pdb.py {pdbfile} {partner2}', f'{submit_dir}/{basename}_{partner2}.pdb'),
+        (f'mv {submit_dir}/{basename}_{partner1}.pdb {outdir}', f'{outdir}/{basename}_{partner1}.pdb'),
+        (f'mv {submit_dir}/{basename}_{partner2}.pdb {outdir}', f'{outdir}/{basename}_{partner2}.pdb'),
+        (f'mv {submit_dir}/{basename}_*.fasta {outdir}', None)
+    ]
+    for cmd, expected_path in cmds:
+        proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
+        if proc.returncode != 0:
+            print_infos(message=f'error running: {cmd}', type='info')
+            print_infos(message=f'stdout: {proc.stdout}', type='info')
+            print_infos(message=f'stderr: {proc.stderr}', type='info')
+        # if expected file defined, ensure it exists (after move)
+        if expected_path:
+            if not os.path.exists(expected_path):
+                print_infos(message=f'warning: expected file not found -> {expected_path}', type='info')
+    # return actual partner paths (they may or may not exist)
     return f'{outdir}/{basename}_{partner1}.pdb', f'{outdir}/{basename}_{partner2}.pdb'
+
 
 def concat_pdbs(outdir, basename, partner1, partner2):
     outfile = f'{outdir}/{basename}_jd2.pdb'
