@@ -74,6 +74,12 @@ def post_processing(pdbfiles, partner1, partner2, trainedmodels, mlmodel, st):
     for mol, pdb in enumerate(pdbfiles):
         basename = os.path.basename(pdb[:-4])
         outdir = args.odir[0]
+        # Can change above to:
+        # outdir = f'{args.odir[0]}/{basename}'
+        # or to:
+        # outdir = args.odir[0]
+        #
+        # (Original: outdir = f'{args.odir[0]}/pbee_outputs/{basename}')
 
         # 1. concatenates partner1 and partner2 structures
         # ----------------------------------------------
@@ -114,13 +120,26 @@ def post_processing(pdbfiles, partner1, partner2, trainedmodels, mlmodel, st):
         y_train = pd.read_csv(f'{PbeePATH}/trainedmodels/{version}/{version}__pbee_train_file.csv', delimiter=',')['dG_exp']
         
         # ---
-        if not os.path.isfile(f'{outdir}/dG_pred.csv'):
+        # NOTE: change here — look for per-pdb csv instead of generic 'dG_pred.csv'
+        # Original check:
+        # if not os.path.isfile(f'{outdir}/dG_pred.csv'):
+        csv_path = f'{outdir}/{basename}.csv'
+        if not os.path.isfile(csv_path):
             print_infos(message=f'[{mol}] geometry optimization and interface analysis', type='protocol')
             pose, rosetta_features = Get_descriptors(_pdb, ions, outdir, basename, partner1, partner2)
             selected_columns = [col for col in train_file_columns if col in rosetta_features.columns]
             rosetta_features = rosetta_features[selected_columns]
 
-            # salva arquivo .pdb
+            
+            # Original:
+            # if len(ions) != 0:
+            #     pose.dump_pdb(f'{outdir}/{basename}_ions_rlx.pdb')
+            # else:
+            #     pose.dump_pdb(f'{outdir}/{basename}_rlx.pdb')
+            # If you want to keep writing the relaxed pdbs during processing, keep the above.
+            # Otherwise comment them out (they are needed only if you want to inspect relaxed pdbs).
+            # For now we keep them during processing and remove later.
+
             if len(ions) != 0:
                 pose.dump_pdb(f'{outdir}/{basename}_ions_rlx.pdb')
             else:
@@ -140,7 +159,9 @@ def post_processing(pdbfiles, partner1, partner2, trainedmodels, mlmodel, st):
                 if outliers != 0:
                     continue
         else:
-            rosetta_features = pd.read_csv(f'{outdir}/dG_pred.csv', delimiter=',')
+            # Original:
+            # rosetta_features = pd.read_csv(f'{outdir}/dG_pred.csv', delimiter=',')
+            rosetta_features = pd.read_csv(csv_path, delimiter=',')
             selected_columns = [col for col in train_file_columns if col in rosetta_features.columns]
             rosetta_features = rosetta_features[selected_columns]
 
@@ -152,29 +173,54 @@ def post_processing(pdbfiles, partner1, partner2, trainedmodels, mlmodel, st):
         total_time = processing_time(st)
 
         # ---
+        # Insert columns as before
         rosetta_features.insert(0, 'pdb',             basename)
         rosetta_features.insert(1, 'dG_pred',         dG_pred)
         rosetta_features.insert(2, 'affinity',        affinity)
         rosetta_features.insert(3, 'mlengine',        mlengine)
         rosetta_features.insert(4, 'total_atoms',     total_atoms)
         rosetta_features.insert(5, 'processing_time', total_time)
-        rosetta_features.to_csv(f'{outdir}/dG_pred.csv', index=False)
 
-        # 8 Remove temporary files
-        remove_files(files=[
-            glob.glob(f'{outdir}/*fasta'),
-            f'{outdir}/{basename}_jd2_01.pdb',
-            f'{outdir}/{basename}_jd2_02.pdb'])
+        # === NEW: only export pdb, dG_pred, affinity (but keep original as comment)
+        # Original:
+        # rosetta_features.to_csv(f'{outdir}/dG_pred.csv', index=False)
+        export_df = rosetta_features[['pdb', 'dG_pred', 'affinity']]
+        export_df.to_csv(csv_path, index=False)
+        # If you want to keep the full output for debugging, uncomment this:
+        # rosetta_features.to_csv(f'{outdir}/dG_pred.csv', index=False)
+
+        # 8 Remove temporary files (cleanup)
+        # Remove FASTA and rosetta temp JD2 files as before and also remove all .pdb files in the output dir
+        pdbs_to_remove = glob.glob(f'{outdir}/*.pdb')
+        fasta_files = glob.glob(f'{outdir}/*fasta')
+        # keep the csv, then remove everything else that is temporary
+        remove_files(files=[pdbs_to_remove, fasta_files,
+                            f'{outdir}/{basename}_jd2_01.pdb',
+                            f'{outdir}/{basename}_jd2_02.pdb'])
 
 def remove_files(files):
     for file in files:
-        if type(file) is list:
+        # If file is a list of filenames
+        if isinstance(file, (list, tuple)):
             for item in file:
-                os.remove(item)
+                if item is None:
+                    continue
+                if os.path.exists(item):
+                    try:
+                        os.remove(item)
+                    except Exception as e:
+                        # just warn, don't crash
+                        print_infos(message=f'warning: failed to remove {item}: {e}', type='info')
         else:
+            # file is a single filepath
+            if file is None:
+                continue
             if os.path.exists(file):
-                os.remove(file)
-
+                try:
+                    os.remove(file)
+                except Exception as e:
+                    print_infos(message=f'warning: failed to remove {file}: {e}', type='info')
+                    
 def partner_checker(pdbfile, partner1, partner2):
     chains, partners = detect_chains(pdbfile), list(partner1 + partner2)
     count = 0
