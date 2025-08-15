@@ -28,7 +28,7 @@ def pre_processing(pdbfiles):
     bad_structures = []
     for mol, pdb in enumerate(pdbfiles):
         basename = os.path.basename(pdb[:-4])
-        outdir = f'{args.odir[0]}/pbee_outputs/{basename}'
+        outdir = args.odir[0]
 
          # Checks if the file(s) are in PDB format
         condition = ispdb(pdb)
@@ -73,7 +73,7 @@ def pre_processing(pdbfiles):
 def post_processing(pdbfiles, partner1, partner2, trainedmodels, mlmodel, st):
     for mol, pdb in enumerate(pdbfiles):
         basename = os.path.basename(pdb[:-4])
-        outdir = f'{args.odir[0]}/pbee_outputs/{basename}'
+        outdir = args.odir[0]
 
         # 1. concatenates partner1 and partner2 structures
         # ----------------------------------------------
